@@ -81,16 +81,14 @@ class TranslationAnalyzer:
             return self.nlps[lang]
         config = self.LANGUAGE_CONFIG[lang]
         import spacy
-        import subprocess
         try:
             nlp = spacy.load(config['model_name'])
             print(f"[✅] 成功加载 {config['model_name']} 模型")
         except OSError:
-            print(f"[⏳] 正在下载 {config['model_name']} 模型...")
-            from spacy.cli import download
-            download(config['model_name'])
-            nlp = spacy.load(config['model_name'])
-            print(f"[✅] 下载完成，已加载 {config['model_name']} 模型")
+            raise RuntimeError(
+                f"模型 {config['model_name']} 未找到。"
+                f"请确保已在 requirements.txt 中添加该模型并重新部署。"
+        )
         self.nlps[lang] = nlp
         return nlp
 
