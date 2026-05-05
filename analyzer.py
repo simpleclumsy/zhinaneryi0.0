@@ -284,6 +284,12 @@ class TranslationAnalyzer:
 
         ttest_rows = []
         for m in desc_long['指标'].unique():
+            t_res = None   # ← 加这一行，避免 UnboundLocalError
+            # 进行样本量检查，不够则跳过
+            if len(vals1) < 2 or len(vals2) < 2:
+                continue
+            # 计算 t 检验
+            t_res = ttest_ind(vals1, vals2)
             if t_res is not None:
                 stat = t_res.statistic
                 df = t_res.df
