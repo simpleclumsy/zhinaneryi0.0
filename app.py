@@ -25,16 +25,7 @@ from io import StringIO
 from analyzer import TranslationAnalyzer  # 你的核心分析类
 import spacy
 
-models = {
-    "zh_core_web_sm": "zh_core_web_sm",
-    "en_core_web_sm": "en_core_web_sm",
-    "ja_core_news_sm": "ja_core_news_sm"
-}
-for model_name in models.values():
-    try:
-        spacy.load(model_name)
-    except OSError:
-        os.system(f"python -m spacy download {model_name}")
+
 
 # ++++++++++++++ 新增：指标解释字典 ++++++++++++++
 METRIC_EXPLANATIONS = {
