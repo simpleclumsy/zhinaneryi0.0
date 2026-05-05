@@ -87,7 +87,8 @@ class TranslationAnalyzer:
             print(f"[✅] 成功加载 {config['model_name']} 模型")
         except OSError:
             print(f"[⏳] 正在下载 {config['model_name']} 模型...")
-            subprocess.run(config['install_cmd'], shell=True, check=True)
+            from spacy.cli import download
+            download(config['model_name'])
             nlp = spacy.load(config['model_name'])
             print(f"[✅] 下载完成，已加载 {config['model_name']} 模型")
         self.nlps[lang] = nlp
