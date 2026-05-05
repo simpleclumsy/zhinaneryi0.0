@@ -16,6 +16,13 @@ Created on Tue May  5 15:32:44 2026
 import streamlit as st
 import pandas as pd
 import numpy as np
+# 指定字体路径（与 app.py 同级的 fonts/SimHei.ttf）
+font_path = os.path.join(os.path.dirname(__file__), "fonts", "SimHei.ttf")
+if os.path.exists(font_path):
+    fm.fontManager.addfont(font_path)
+    # 设置全局字体
+    matplotlib.rcParams['font.family'] = 'SimHei'
+    matplotlib.rcParams['axes.unicode_minus'] = False  # 防止负号显示异常
 import matplotlib.pyplot as plt
 import seaborn as sns
 from math import pi
