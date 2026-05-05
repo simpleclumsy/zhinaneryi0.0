@@ -16,6 +16,9 @@ Created on Tue May  5 15:32:44 2026
 import streamlit as st
 import pandas as pd
 import numpy as np
+import matplotlib
+import matplotlib.font_manager as fm
+import os
 # 指定字体路径（与 app.py 同级的 fonts/SimHei.ttf）
 font_path = os.path.join(os.path.dirname(__file__), "fonts", "SimHei.ttf")
 if os.path.exists(font_path):
@@ -26,7 +29,6 @@ if os.path.exists(font_path):
 import matplotlib.pyplot as plt
 import seaborn as sns
 from math import pi
-import os
 import re
 from io import StringIO
 from analyzer import TranslationAnalyzer  # 你的核心分析类
