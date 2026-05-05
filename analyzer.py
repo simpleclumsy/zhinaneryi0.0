@@ -284,6 +284,20 @@ class TranslationAnalyzer:
 
         ttest_rows = []
         for m in desc_long['指标'].unique():
+            if t_res is not None:
+                stat = t_res.statistic
+                df = t_res.df
+                pval = t_res.pvalue
+                # 检查是否为 NaN 或 inf
+                if np.isnan(stat) or np.isinf(stat) or np.isnan(df) or np.isinf(df) or np.isnan(pval) or np.isinf(pval):
+                    # 如果无效，可以跳过，或者填入占位符
+                    continue
+                ttest_rows.append({
+                    '指标': m,
+                    'T值(统计量)': round(stat, 2),
+                    '自由度': int(df),
+                    'P值': round(pval, 2)
+                })
             groups = [long_df[(long_df['模型'] == mod) & (long_df['指标'] == m)]['值'].values for mod in models]
             valid_groups = [g for g in groups if len(g) >= 2]
             if len(valid_groups) == k and k >= 3:
