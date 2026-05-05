@@ -517,7 +517,7 @@ if st.session_state.get("analysis_done", False):
         ax.set_ylim(0, 1)
         ax.set_yticks([0.2, 0.4, 0.6, 0.8, 1.0])
         ax.set_yticklabels(['0.2', '0.4', '0.6', '0.8', '1.0'])
-        ax.set_title(f'雷达图（Min-Max归一化至{LOW}-{HIGH}，越大越好）', fontsize=14, pad=20)
+        ax.set_title(f'雷达图（Min-Max归一化至{LOW}-{HIGH}）', fontsize=14, pad=20)
         ax.legend(loc='upper right', bbox_to_anchor=(1.2, 1.0))
         fig.tight_layout()
         return fig
