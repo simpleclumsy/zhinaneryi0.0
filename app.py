@@ -384,7 +384,11 @@ if st.session_state.get("analysis_done", False):
     desc_sub = desc_sub.sort_values(['分组', '指标'])
 
     # 有效指标（仅用于图表）
-    valid_key = [m for m in all_ordered_metrics if m in desc_sub['指标'].unique()]
+   # 有效指标（仅用于图表）：至少有一个模型有有效平均值
+    valid_key = [
+        m for m in all_ordered_metrics
+        if m in desc_sub['指标'].unique() and m in pivot_mean.index and pivot_mean.loc[m].notna().any()
+    ]
 
     # ------------- 构建带分组的多级索引宽表 -------------
     wide = desc_sub.pivot(index=['分组', '指标'], columns='模型',
@@ -454,8 +458,17 @@ if st.session_state.get("analysis_done", False):
         valid_models = means.dropna().index
         means_clean = means[valid_models]
         stds_clean = stds[valid_models]
+
+        # 数据不足时：生成占位图并返回
         if len(means_clean) == 0:
-            return None
+            fig, ax = plt.subplots(figsize=(5, 4))
+            ax.text(0.5, 0.5, '数据不足，无法绘制',
+                    ha='center', va='center', fontsize=14, color='gray',
+                    transform=ax.transAxes)
+            ax.set_title(f'{metric_name}\n(暂无有效数据)', fontsize=12)
+            fig.tight_layout()
+            return fig
+            
         models = means_clean.index.tolist()
         x = np.arange(len(models))
         fig, ax = plt.subplots(figsize=(5, 4))
@@ -495,6 +508,14 @@ if st.session_state.get("analysis_done", False):
         fig.tight_layout()
         return fig
 
+    def plot_placeholder(title, message="数据不足，无法绘制"):
+        fig, ax = plt.subplots(figsize=(5, 4))
+        ax.text(0.5, 0.5, message, ha='center', va='center',
+                fontsize=14, color='gray', transform=ax.transAxes)
+        ax.set_title(title, fontsize=12)
+        fig.tight_layout()
+        return fig
+        
     def plot_radar(radar_data, valid_keys, LOW=0.2, HIGH=1.0):
         radar_norm = radar_data.copy()
         for metric in radar_norm.index:
@@ -538,30 +559,32 @@ if st.session_state.get("analysis_done", False):
             st.info("没有可显示的指标。")
 
     with tab2:
-        if len(valid_key) >= 2:
+    # 准备热图数据，剔除含有任何 NaN 的指标（确保标准化安全）
+        pivot_heat = pivot_mean.loc[valid_key].dropna(how='any')
+        if len(pivot_heat) < 2:
+            fig = plot_placeholder("热图（指标不足）", "至少需要两个完整指标才能绘制热图")
+            st.pyplot(fig)
+        else:
             # Z-score标准化
-            pivot_mean_key = pivot_mean.loc[valid_key].copy()
-            pivot_norm_key = pivot_mean_key.copy()
+            pivot_norm_key = pivot_heat.copy()
             for idx in pivot_norm_key.index:
-                row = pivot_mean_key.loc[idx]
+                row = pivot_heat.loc[idx]
                 mean_row = row.mean()
                 std_row = row.std()
                 if std_row == 0 or np.isnan(std_row):
                     pivot_norm_key.loc[idx] = 0.0
                 else:
                     pivot_norm_key.loc[idx] = (row - mean_row) / std_row
-            annot_vals = pivot_mean_key.round(2).astype(str)
+            annot_vals = pivot_heat.round(2).astype(str)
             fig = plot_heatmap(pivot_norm_key, annot_vals)
             st.pyplot(fig)
-        else:
-            st.info("至少需要两个指标才能绘制热图。")
-
+            
     with tab3:
-        if len(valid_key) >= 3:
-            radar_data = pivot_mean.loc[valid_key].copy()
-            fig = plot_radar(radar_data, valid_key)
+    # 准备雷达图数据，剔除含有任何 NaN 的指标（避免归一化失败）
+        radar_clean = pivot_mean.loc[valid_key].dropna(how='any')
+        if len(radar_clean) < 3:
+            fig = plot_placeholder("雷达图（指标不足）", f"至少需要3个完整指标，当前仅{len(radar_clean)}个")
             st.pyplot(fig)
         else:
-            st.info(f"至少需要3个指标，当前仅有{len(valid_key)}个。")
-else:
-    st.info(" 请先输入或上传文本，然后点击“开始分析”。")
+            fig = plot_radar(radar_clean, radar_clean.index.tolist())
+            st.pyplot(fig)
