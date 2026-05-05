@@ -283,38 +283,66 @@ class TranslationAnalyzer:
         wide = wide.round(2)
 
         ttest_rows = []
+               ttest_rows = []
         for m in desc_long['指标'].unique():
-            t_res = None   # ← 加这一行，避免 UnboundLocalError
-            # 进行样本量检查，不够则跳过
-            if len(vals1) < 2 or len(vals2) < 2:
-                continue
-            # 计算 t 检验
-            t_res = ttest_ind(vals1, vals2)
-            if t_res is not None:
-                stat = t_res.statistic
-                df = t_res.df
-                pval = t_res.pvalue
-                # 检查是否为 NaN 或 inf
-                if np.isnan(stat) or np.isinf(stat) or np.isnan(df) or np.isinf(df) or np.isnan(pval) or np.isinf(pval):
-                    # 如果无效，可以跳过，或者填入占位符
-                    continue
+            # 1. 提取每个模型下该指标的所有有效值（至少1个数值）
+            groups = []
+            for mod in models:
+                vals = long_df[(long_df['模型'] == mod) & (long_df['指标'] == m)]['值'].dropna().values
+                if len(vals) >= 2:   # 统计检验至少需要2个值
+                    groups.append(vals)
+                else:
+                    groups.append(None)  # 标记该模型数据不足
+
+            # 2. 过滤掉数据不足的组，仅对有效的组进行检验
+            valid_groups = [g for g in groups if g is not None]
+            k_valid = len(valid_groups)
+
+            # 3. 分情况计算并添加结果
+            if k_valid < 2:
+                # 有效组少于2个，无法检验，填占位符
                 ttest_rows.append({
                     '指标': m,
-                    'T值(统计量)': round(stat, 2),
-                    '自由度': int(df),
-                    'P值': round(pval, 2)
+                    'F值(统计量)' if k >= 3 else 'T值(统计量)': np.nan,
+                    '自由度': np.nan,
+                    'P值': np.nan
                 })
-            groups = [long_df[(long_df['模型'] == mod) & (long_df['指标'] == m)]['值'].values for mod in models]
-            valid_groups = [g for g in groups if len(g) >= 2]
-            if len(valid_groups) == k and k >= 3:
-                f_stat, p_val = st.f_oneway(*valid_groups)
-                df = sum(len(g) for g in valid_groups) - k
-                ttest_rows.append({'指标': m, 'F值(统计量)': round(f_stat, 2), '自由度': int(df), 'P值': round(p_val, 2)})
-            elif k == 2:
-                t_res = st.ttest_ind(*valid_groups, equal_var=False)
-                ttest_rows.append({'指标': m, 'T值(统计量)': round(t_res.statistic, 2), '自由度': int(t_res.df), 'P值': round(t_res.pvalue, 2)})
+            elif k_valid == 2:
+                # 两组：独立样本t检验（方差不齐）
+                try:
+                    t_res = st.ttest_ind(*valid_groups, equal_var=False)
+                    stat = t_res.statistic
+                    df = t_res.df
+                    pval = t_res.pvalue
+                except Exception:
+                    stat, df, pval = np.nan, np.nan, np.nan
+
+                if not (np.isnan(stat) or np.isinf(stat) or np.isnan(df) or np.isinf(df)):
+                    ttest_rows.append({
+                        '指标': m,
+                        'T值(统计量)': round(stat, 2),
+                        '自由度': int(df),
+                        'P值': round(pval, 2)
+                    })
+                else:
+                    ttest_rows.append({'指标': m, 'T值(统计量)': np.nan, '自由度': np.nan, 'P值': np.nan})
             else:
-                ttest_rows.append({'指标': m, 'F值(统计量)': np.nan, '自由度': np.nan, 'P值': np.nan})
+                # 三组及以上：单因素方差分析
+                try:
+                    f_stat, p_val = st.f_oneway(*valid_groups)
+                    df = sum(len(g) for g in valid_groups) - k_valid
+                except Exception:
+                    f_stat, p_val, df = np.nan, np.nan, np.nan
+
+                if not (np.isnan(f_stat) or np.isinf(f_stat)):
+                    ttest_rows.append({
+                        '指标': m,
+                        'F值(统计量)': round(f_stat, 2),
+                        '自由度': int(df),
+                        'P值': round(p_val, 2)
+                    })
+                else:
+                    ttest_rows.append({'指标': m, 'F值(统计量)': np.nan, '自由度': np.nan, 'P值': np.nan})
 
         stat_df = pd.DataFrame(ttest_rows)
         stat_df.rename(columns={'F值(统计量)': 'F值', 'T值(统计量)': 'T值'}, inplace=True)
