@@ -476,10 +476,20 @@ if st.session_state.get("analysis_done", False):
         for bar, mv in zip(bars, means_clean):
             ax.text(bar.get_x() + bar.get_width()/2., bar.get_height(),
                     f'{mv:.2f}', ha='center', va='bottom', fontsize=9)
-        low_vals = means_clean - stds_clean
-        high_vals = means_clean + stds_clean
-        min_val = low_vals.min()
-        max_val = high_vals.max()
+        # 用0填充标准差中的NaN（数据不足时标准差不可得，视为无误差条）
+        stds_filled = stds_clean.fillna(0)
+        low_vals = means_clean - stds_filled
+        high_vals = means_clean + stds_filled
+
+        # 使用 nanmin/nanmax 双重保险，确保计算结果有效
+        min_val = np.nanmin(low_vals)
+        max_val = np.nanmax(high_vals)
+
+        # 最终防御：如果仍为 NaN，设置默认范围
+        if np.isnan(min_val) or np.isinf(min_val):
+            min_val = 0
+        if np.isnan(max_val) or np.isinf(max_val):
+            max_val = 1
         if max_val - min_val < 1e-8:
             min_val -= 0.1
             max_val += 0.1
