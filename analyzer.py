@@ -283,7 +283,6 @@ class TranslationAnalyzer:
         wide = wide.round(2)
 
         ttest_rows = []
-               ttest_rows = []
         for m in desc_long['指标'].unique():
             # 1. 提取每个模型下该指标的所有有效值（至少1个数值）
             groups = []
