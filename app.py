@@ -383,13 +383,6 @@ if st.session_state.get("analysis_done", False):
     desc_sub['分组'] = pd.Categorical(desc_sub['分组'], categories=[g[0] for g in grouping_order], ordered=True)
     desc_sub = desc_sub.sort_values(['分组', '指标'])
 
-    # 有效指标（仅用于图表）
-   # 有效指标（仅用于图表）：至少有一个模型有有效平均值
-    valid_key = [
-        m for m in all_ordered_metrics
-        if m in desc_sub['指标'].unique() and m in pivot_mean.index and pivot_mean.loc[m].notna().any()
-    ]
-
     # ------------- 构建带分组的多级索引宽表 -------------
     wide = desc_sub.pivot(index=['分组', '指标'], columns='模型',
                          values=['最小值', '最大值', '中位数', '平均值', '标准差'])
@@ -452,6 +445,11 @@ if st.session_state.get("analysis_done", False):
     # 使用 desc_sub 生成 pivot_mean 和 pivot_std
     pivot_mean = desc_sub.pivot(index='指标', columns='模型', values='平均值')
     pivot_std = desc_sub.pivot(index='指标', columns='模型', values='标准差')
+    # 有效指标（仅用于图表）：至少有一个模型有有效平均值
+    valid_key = [
+        m for m in all_ordered_metrics
+        if m in desc_sub['指标'].unique() and m in pivot_mean.index and pivot_mean.loc[m].notna().any()
+    ]
 
     # ------------- 绘图函数（移植并返回 fig） -------------
     def plot_single_metric(metric_name, p_val, means, stds):
